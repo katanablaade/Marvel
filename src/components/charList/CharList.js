@@ -10,7 +10,6 @@ class CharList extends Component {
     charAll: [],
     loading: true,
     error: false,
-    hover: false,
   };
 
   marvelService = new MarvelService();
@@ -33,14 +32,12 @@ class CharList extends Component {
       .catch(this.onError);
   };
 
-  toggleHover = () => {
-    this.setState({ hover: !this.state.hover });
-  };
-
   render() {
     const { charAll, loading, error } = this.state;
     const errorMessage = error ? <ErrorMessage /> : null;
-    const content = !(loading || error) ? <View charAll={charAll} /> : null;
+    const content = !(loading || error) ? (
+      <View charAll={charAll} onCharSelected={this.props.onCharSelected} />
+    ) : null;
     const spinner = loading ? <Spinner /> : null;
 
     return (
@@ -56,7 +53,7 @@ class CharList extends Component {
   }
 }
 
-const View = ({ charAll }) => {
+const View = ({ charAll, onCharSelected }) => {
   // char__item_selected
 
   return charAll.map((item) => {
@@ -65,7 +62,11 @@ const View = ({ charAll }) => {
       : 'cover';
 
     return (
-      <li key={item.id} className="char__item">
+      <li
+        className="char__item"
+        key={item.id}
+        onClick={() => onCharSelected(item.id)}
+      >
         <img
           src={item.thumbnail}
           alt={item.name}
