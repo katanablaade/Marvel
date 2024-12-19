@@ -18,6 +18,7 @@ class CharList extends Component {
   };
 
   marvelService = new MarvelService();
+  itemRefs = [];
 
   componentDidMount() {
     this.onRequest();
@@ -56,12 +57,29 @@ class CharList extends Component {
     this.setState({ loading: false, error: true });
   };
 
+  setRef = (ref) => {
+    this.itemRefs.push(ref);
+  };
+
+  focusOnChar = (id) => {
+    this.itemRefs.forEach((item) =>
+      item.classList.remove('char__item_selected')
+    );
+    this.itemRefs[id].classList.add('char__item_selected');
+  };
+
   render() {
     const { charAll, loading, error, offset, newItemLoading, charEnded } =
       this.state;
     const errorMessage = error ? <ErrorMessage /> : null;
     const content = !(loading || error) ? (
-      <View charAll={charAll} onCharSelected={this.props.onCharSelected} />
+      <View
+        charAll={charAll}
+        onCharSelected={this.props.onCharSelected}
+        setRef={this.setRef}
+        focusOnChar={this.focusOnChar}
+        itemRefs={this.itemRefs}
+      />
     ) : null;
     const spinner = loading ? <Spinner /> : null;
 
@@ -83,19 +101,21 @@ class CharList extends Component {
   }
 }
 
-const View = ({ charAll, onCharSelected }) => {
-  // char__item_selected
-
-  return charAll.map((item) => {
+const View = ({ charAll, onCharSelected, setRef, focusOnChar }) => {
+  return charAll.map((item, i) => {
     const notFoundImg = item.thumbnail.includes('image_not_available')
       ? 'fill'
       : 'cover';
 
     return (
       <li
+        ref={setRef}
         className="char__item"
         key={item.id}
-        onClick={() => onCharSelected(item.id)}
+        onClick={() => {
+          onCharSelected(item.id);
+          focusOnChar(i);
+        }}
       >
         <img
           src={item.thumbnail}
