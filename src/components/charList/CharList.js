@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import MarvelService from '../../services/MarvelService';
@@ -7,101 +7,84 @@ import ErrorMessage from '../errorMessage/ErrorMessage';
 
 import './charList.scss';
 
-class CharList extends Component {
-  state = {
-    charAll: [],
-    loading: true,
-    error: false,
-    newItemLoading: false,
-    offset: 210,
-    charEnded: false,
+const CharList = (props) => {
+  const [charAll, setCharAll] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [newItemLoading, setNewItemLoading] = useState(false);
+  const [offset, setOffset] = useState(210);
+  const [charEnded, setCharEnded] = useState(false);
+
+  const marvelService = new MarvelService();
+  const itemRefs = useRef([]);
+
+  useEffect(() => {
+    onRequest();
+  }, []);
+
+  const onRequest = (offset) => {
+    onCharAllLoading();
+    marvelService.getAllCharacter(offset).then(onCharAllLoaded).catch(onError);
   };
 
-  marvelService = new MarvelService();
-  itemRefs = [];
-
-  componentDidMount() {
-    this.onRequest();
-  }
-
-  onRequest = (offset) => {
-    this.onCharAllLoading();
-    this.marvelService
-      .getAllCharacter(offset)
-      .then(this.onCharAllLoaded)
-      .catch(this.onError);
+  const onCharAllLoading = () => {
+    setNewItemLoading(true);
   };
 
-  onCharAllLoading = () => {
-    this.setState({
-      newItemLoading: true,
-    });
-  };
-
-  onCharAllLoaded = (newCharAll) => {
+  const onCharAllLoaded = (newCharAll) => {
     let ended = false;
     if (newCharAll.length < 9) {
       ended = true;
     }
 
-    this.setState(({ offset, charAll }) => ({
-      charAll: [...charAll, ...newCharAll],
-      loading: false,
-      newItemLoading: false,
-      offset: offset + 9,
-      charEnded: ended,
-    }));
+    setCharAll((charAll) => [...charAll, ...newCharAll]);
+    setLoading((loading) => false);
+    setNewItemLoading((newItemLoading) => false);
+    setOffset((offset) => offset + 9);
+    setCharEnded((charEnded) => ended);
   };
 
-  onError = () => {
-    this.setState({ loading: false, error: true });
+  const onError = () => {
+    setLoading((loading) => false);
+    setError(true);
   };
 
-  setRef = (ref) => {
-    this.itemRefs.push(ref);
-  };
-
-  focusOnChar = (id) => {
-    this.itemRefs.forEach((item) =>
+  const focusOnChar = (id) => {
+    itemRefs.current.forEach((item) =>
       item.classList.remove('char__item_selected')
     );
-    this.itemRefs[id].classList.add('char__item_selected');
+    itemRefs.current[id].classList.add('char__item_selected');
   };
 
-  render() {
-    const { charAll, loading, error, offset, newItemLoading, charEnded } =
-      this.state;
-    const errorMessage = error ? <ErrorMessage /> : null;
-    const content = !(loading || error) ? (
-      <View
-        charAll={charAll}
-        onCharSelected={this.props.onCharSelected}
-        setRef={this.setRef}
-        focusOnChar={this.focusOnChar}
-        itemRefs={this.itemRefs}
-      />
-    ) : null;
-    const spinner = loading ? <Spinner /> : null;
+  const errorMessage = error ? <ErrorMessage /> : null;
+  const content = !(loading || error) ? (
+    <RenderItem
+      charAll={charAll}
+      onCharSelected={props.onCharSelected}
+      focusOnChar={focusOnChar}
+      itemRefs={itemRefs}
+    />
+  ) : null;
+  const spinner = loading ? <Spinner /> : null;
 
-    return (
-      <div className="char__list">
-        {spinner}
-        {errorMessage}
-        <ul className="char__grid">{content}</ul>
-        <button
-          className="button button__main button__long"
-          disabled={newItemLoading}
-          style={{ display: charEnded ? 'none' : 'block' }}
-          onClick={() => this.onRequest(offset)}
-        >
-          <div className="inner">load more</div>
-        </button>
-      </div>
-    );
-  }
-}
+  return (
+    <div className="char__list">
+      {spinner}
+      {errorMessage}
+      <ul className="char__grid">{content}</ul>
+      <button
+        className="button button__main button__long"
+        disabled={newItemLoading}
+        style={{ display: charEnded ? 'none' : 'block' }}
+        onClick={() => onRequest(offset)}
+      >
+        <div className="inner">load more</div>
+      </button>
+    </div>
+  );
+};
 
-const View = ({ charAll, onCharSelected, setRef, focusOnChar }) => {
+const RenderItem = ({ charAll, onCharSelected, focusOnChar, itemRefs }) => {
   return charAll.map((item, i) => {
     const notFoundImg = item.thumbnail.includes('image_not_available')
       ? 'fill'
@@ -109,7 +92,7 @@ const View = ({ charAll, onCharSelected, setRef, focusOnChar }) => {
 
     return (
       <li
-        ref={setRef}
+        ref={(el) => (itemRefs.current[i] = el)}
         className="char__item"
         key={item.id}
         onClick={() => {
