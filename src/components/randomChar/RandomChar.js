@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Spinner from '../spinner/Spinner';
-import MarvelService from '../../services/MarvelService';
+import useMarvelService from '../../services/MarvelService';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 
 import './randomChar.scss';
@@ -8,10 +8,8 @@ import mjolnir from '../../resources/img/mjolnir.png';
 
 const RandomChar = () => {
   const [char, setChar] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
-  const marvelService = new MarvelService();
+  const { loading, error, getCharacter, clearError } = useMarvelService();
 
   useEffect(() => {
     updateChar();
@@ -20,26 +18,17 @@ const RandomChar = () => {
     return () => {
       clearInterval(timerId);
     };
+    // eslint-disable-next-line
   }, []);
 
   const onCharLoaded = (char) => {
     setChar(char);
-    setLoading(false);
-  };
-
-  const onCharLoading = () => {
-    setLoading(true);
-  };
-
-  const onError = () => {
-    setLoading(false);
-    setError(true);
   };
 
   const updateChar = () => {
+    clearError();
     const id = Math.floor(Math.random() * (1011400 - 1011000) + 1011000);
-    onCharLoading();
-    marvelService.getCharacter(id).then(onCharLoaded).catch(onError);
+    getCharacter(id).then(onCharLoaded);
   };
 
   const errorMessage = error ? <ErrorMessage /> : null;
@@ -77,9 +66,13 @@ const View = ({ char }) => {
       : description
     : noDescriptionText;
 
-  const notFoundImg = thumbnail.includes('image_not_available')
-    ? 'fill'
-    : 'cover';
+  let imgStyle = { objectFit: 'cover' };
+  if (
+    thumbnail ===
+    'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg'
+  ) {
+    imgStyle = { objectFit: 'contain' };
+  }
 
   return (
     <div className="randomchar__block">
@@ -87,7 +80,7 @@ const View = ({ char }) => {
         src={thumbnail}
         alt="Random character"
         className="randomchar__img"
-        style={{ objectFit: notFoundImg }}
+        style={imgStyle}
       />
       <div className="randomchar__info">
         <p className="randomchar__name">{name}</p>

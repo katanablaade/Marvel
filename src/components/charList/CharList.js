@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
-import MarvelService from '../../services/MarvelService';
+import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 
@@ -9,26 +9,21 @@ import './charList.scss';
 
 const CharList = (props) => {
   const [charAll, setCharAll] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [newItemLoading, setNewItemLoading] = useState(false);
   const [offset, setOffset] = useState(210);
   const [charEnded, setCharEnded] = useState(false);
 
-  const marvelService = new MarvelService();
+  const { loading, error, getAllCharacter } = useMarvelService();
   const itemRefs = useRef([]);
 
   useEffect(() => {
-    onRequest();
+    onRequest(offset, true);
+    // eslint-disable-next-line
   }, []);
 
-  const onRequest = (offset) => {
-    onCharAllLoading();
-    marvelService.getAllCharacter(offset).then(onCharAllLoaded).catch(onError);
-  };
-
-  const onCharAllLoading = () => {
-    setNewItemLoading(true);
+  const onRequest = (offset, initial) => {
+    initial ? setNewItemLoading(false) : setNewItemLoading(true);
+    getAllCharacter(offset).then(onCharAllLoaded);
   };
 
   const onCharAllLoaded = (newCharAll) => {
@@ -38,15 +33,9 @@ const CharList = (props) => {
     }
 
     setCharAll((charAll) => [...charAll, ...newCharAll]);
-    setLoading((loading) => false);
     setNewItemLoading((newItemLoading) => false);
     setOffset((offset) => offset + 9);
     setCharEnded((charEnded) => ended);
-  };
-
-  const onError = () => {
-    setLoading((loading) => false);
-    setError(true);
   };
 
   const focusOnChar = (id) => {
@@ -57,21 +46,20 @@ const CharList = (props) => {
   };
 
   const errorMessage = error ? <ErrorMessage /> : null;
-  const content = !(loading || error) ? (
-    <RenderItem
-      charAll={charAll}
-      onCharSelected={props.onCharSelected}
-      focusOnChar={focusOnChar}
-      itemRefs={itemRefs}
-    />
-  ) : null;
-  const spinner = loading ? <Spinner /> : null;
+  const spinner = loading && !newItemLoading ? <Spinner /> : null;
 
   return (
     <div className="char__list">
       {spinner}
       {errorMessage}
-      <ul className="char__grid">{content}</ul>
+      <ul className="char__grid">
+        <RenderItem
+          charAll={charAll}
+          onCharSelected={props.onCharSelected}
+          focusOnChar={focusOnChar}
+          itemRefs={itemRefs}
+        />
+      </ul>
       <button
         className="button button__main button__long"
         disabled={newItemLoading}
